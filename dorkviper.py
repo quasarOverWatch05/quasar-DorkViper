@@ -14,7 +14,7 @@ from questionary import Style
 
 # ASCII Art Banner
 BANNER = """
-██████╗  ██████╗ ██████╗ ██╗  ██╗██╗   ██╗██╗██████╗ ███████╗██████╗ 
+██████╗  ██████╗ ██████╗██╗  ██╗██╗   ██╗██╗██████╗ ███████╗██████╗ 
 ██╔══██╗██╔═══██╗██╔══██╗██║ ██╔╝██║   ██║██║██╔══██╗██╔════╝██╔══██╗
 ██║  ██║██║   ██║██████╔╝█████╔╝ ██║   ██║██║██████╔╝█████╗  ██████╔╝
 ██║  ██║██║   ██║██╔══██╗██╔═██╗ ╚██╗ ██╔╝██║██╔═══╝ ██╔══╝  ██╔══██╗
@@ -27,11 +27,11 @@ For ethical security research and OSINT purposes only
 
 # Custom style for questionary
 custom_style = Style([
-    ('qmark', 'fg:green bold'),
+    ('qmark', 'fg:cyan bold'),
     ('question', 'fg:white bold'),
     ('answer', 'fg:green bold'),
     ('pointer', 'fg:cyan bold'),
-    ('highlighted', 'fg:green bold'),
+    ('highlighted', 'fg:cyan bold'),
     ('selected', 'fg:cyan bold'),
     ('separator', 'fg:cyan'),
     ('instruction', 'fg:white'),
@@ -90,7 +90,7 @@ def clear_screen():
 def print_banner():
     """Print the DorkViper banner."""
     clear_screen()
-    print("\033[94m" + BANNER + "\033[0m")
+    print("\033[92m" + BANNER + "\033[0m")
 
 def select_search_engine():
     """Prompt user to select a search engine."""
@@ -232,7 +232,7 @@ def main():
         if another:
             main()  # Recursive call to start over
         else:
-            print("\n\033[94m[*] Thank you for using DorkViper!\033[0m")
+            print("\n\033[92m[*] Thank you for using DorkViper!\033[0m")
     
     except KeyboardInterrupt:
         print("\n\033[91m[!] Tool execution interrupted by user.\033[0m")
