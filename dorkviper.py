@@ -1,253 +1,207 @@
-#!/usr/bin/env python3
-"""
-DorkViper - Interactive Dorking Assistant
-Developed by Quasar CyberTech Research Team
-
-A professional-grade tool for ethical security research and OSINT.
-"""
-
-import webbrowser
-import sys
 import os
-import questionary
-from questionary import Style
+import sys
+import webbrowser
+import time
+import random
+from urllib.parse import quote_plus
 
-# ASCII Art Banner
-BANNER = """
-██████╗  ██████╗ ██████╗██╗  ██╗██╗   ██╗██╗██████╗ ███████╗██████╗ 
-██╔══██╗██╔═══██╗██╔══██╗██║ ██╔╝██║   ██║██║██╔══██╗██╔════╝██╔══██╗
-██║  ██║██║   ██║██████╔╝█████╔╝ ██║   ██║██║██████╔╝█████╗  ██████╔╝
-██║  ██║██║   ██║██╔══██╗██╔═██╗ ╚██╗ ██╔╝██║██╔═══╝ ██╔══╝  ██╔══██╗
-██████╔╝╚██████╔╝██║  ██║██║  ██╗ ╚████╔╝ ██║██║     ███████╗██║  ██║
-╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝
-                                                                      
-Interactive Dorking Assistant | Quasar CyberTech Research Team
-For ethical security research and OSINT purposes only
-"""
-
-# Custom style for questionary
-custom_style = Style([
-    ('qmark', 'fg:cyan bold'),
-    ('question', 'fg:white bold'),
-    ('answer', 'fg:green bold'),
-    ('pointer', 'fg:cyan bold'),
-    ('highlighted', 'fg:cyan bold'),
-    ('selected', 'fg:cyan bold'),
-    ('separator', 'fg:cyan'),
-    ('instruction', 'fg:white'),
-    ('text', 'fg:white'),
-    ('disabled', 'fg:gray'),
-])
-
-# Search engine base URLs
-SEARCH_ENGINES = {
-    "Google": "https://www.google.com/search?q=",
-    "Bing": "https://www.bing.com/search?q=",
-    "DuckDuckGo": "https://duckduckgo.com/?q=",
-    "Yandex": "https://yandex.com/search/?text=",
-    "Baidu": "https://www.baidu.com/s?wd=",
-    "Shodan": "https://www.shodan.io/search?query="
-}
-
-# Dork categories and their queries
-DORK_CATEGORIES = {
-    "Login Portals": {
-        "Admin Panels": 'intitle:"admin" OR intitle:"administrator" OR intitle:"login" OR intitle:"cpanel"',
-        "Login Pages": 'inurl:login OR inurl:signin OR inurl:auth',
-        "Control Panels": 'intitle:"control panel" OR intitle:"dashboard"'
-    },
-    "Sensitive Files": {
-        "Configuration Files": 'ext:xml OR ext:conf OR ext:cnf OR ext:reg OR ext:inf OR ext:rdp OR ext:cfg OR ext:txt OR ext:ora OR ext:ini',
-        "Database Files": 'ext:sql OR ext:dbf OR ext:mdb OR ext:db',
-        "Backup Files": 'ext:bkf OR ext:bkp OR ext:bak OR ext:old OR ext:backup',
-        "Log Files": 'ext:log OR inurl:log'
-    },
-    "Exposed Information": {
-        "Directory Listings": 'intitle:"index of" OR intitle:"directory listing"',
-        "Exposed Documents": 'ext:doc OR ext:docx OR ext:odt OR ext:pdf OR ext:rtf OR ext:sxw OR ext:psw OR ext:ppt OR ext:pptx OR ext:pps OR ext:csv',
-        "API Keys & Tokens": 'intext:"api_key" OR intext:"api key" OR intext:"apikey" OR intext:"client_secret" OR intext:"client_id"',
-        "Email Lists": 'filetype:xls OR filetype:xlsx intext:"email" OR intext:"e-mail" OR intext:"phone" OR intext:"contact"'
-    },
-    "Vulnerable Pages": {
-        "SQL Injection Potential": 'inurl:php?id= OR inurl:asp?id= OR inurl:jsp?id=',
-        "XSS Potential": 'inurl:search= OR inurl:query= OR inurl:q= OR inurl:s=',
-        "File Inclusion": 'inurl:include OR inurl:require OR inurl:inc OR inurl:path='
-    },
-    "Server Information": {
-        "Server Status Pages": 'intitle:"Apache Status" OR intitle:"nginx status" OR intitle:"server status"',
-        "phpMyAdmin": 'intitle:"phpMyAdmin" OR inurl:phpmyadmin',
-        "Server Technologies": 'intitle:"Test Page for" OR "Default Web Page"'
-    },
-    "Custom Dork": {
-        "Custom Query": "custom"
-    }
-}
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def clear_screen():
     """Clear the terminal screen based on OS."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def print_banner():
-    """Print the DorkViper banner."""
-    clear_screen()
-    print("\033[92m" + BANNER + "\033[0m")
+    """Display the DorkViper banner."""
+    banner = f"""
+    {Colors.GREEN}
+    ██████╗  ██████╗ ██████╗ ██╗  ██╗██╗   ██╗██╗██████╗ ███████╗██████╗ 
+    ██╔══██╗██╔═══██╗██╔══██╗██║ ██╔╝██║   ██║██║██╔══██╗██╔════╝██╔══██╗
+    ██║  ██║██║   ██║██████╔╝█████╔╝ ██║   ██║██║██████╔╝█████╗  ██████╔╝
+    ██║  ██║██║   ██║██╔══██╗██╔═██╗ ╚██╗ ██╔╝██║██╔═══╝ ██╔══╝  ██╔══██╗
+    ██████╔╝╚██████╔╝██║  ██║██║  ██╗ ╚████╔╝ ██║██║     ███████╗██║  ██║
+    ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝
+    {Colors.ENDC}
+    {Colors.BOLD}{Colors.GREEN}[ DorkViper v1.0 - Interactive Google Dorking Tool ]{Colors.ENDC}
+    {Colors.WARNING}[ Developed by Quasar CyberTech Research Team ]{Colors.ENDC}
+    {Colors.FAIL}[ For ethical security research only ]{Colors.ENDC}
+    """
+    print(banner)
 
-def select_search_engine():
-    """Prompt user to select a search engine."""
-    return questionary.select(
-        "Select a search engine:",
-        choices=list(SEARCH_ENGINES.keys()),
-        style=custom_style
-    ).ask()
+def print_disclaimer():
+    """Display the legal disclaimer."""
+    disclaimer = f"""
+    {Colors.BOLD}{Colors.WARNING}LEGAL DISCLAIMER:{Colors.ENDC}
+    {Colors.WARNING}This tool is provided for educational and ethical security research purposes only.
+    Misuse of this tool may violate laws, regulations, or terms of service.
+    The authors are not responsible for any direct or indirect damage caused by
+    the misuse of this tool. Always ensure you have proper authorization before
+    conducting security assessments on any target.{Colors.ENDC}
+    """
+    print(disclaimer)
+    input(f"\n{Colors.BOLD}Press Enter to acknowledge and continue...{Colors.ENDC}")
 
-def select_dork_category():
-    """Prompt user to select a dork category."""
-    return questionary.select(
-        "Select a dork category:",
-        choices=list(DORK_CATEGORIES.keys()),
-        style=custom_style
-    ).ask()
-
-def select_dork_type(category):
-    """Prompt user to select a specific dork type within the chosen category."""
-    return questionary.select(
-        f"Select a {category} dork type:",
-        choices=list(DORK_CATEGORIES[category].keys()),
-        style=custom_style
-    ).ask()
-
-def get_custom_dork():
-    """Prompt user to enter a custom dork query."""
-    return questionary.text(
-        "Enter your custom dork query:",
-        validate=lambda text: len(text) > 0,
-        style=custom_style
-    ).ask()
+def get_dork_categories():
+    """Return a dictionary of dork categories and their corresponding queries."""
+    return {
+        "1": {
+            "name": "Login Pages",
+            "query": "intitle:\"login\" OR inurl:\"login\" OR intext:\"username\" OR intext:\"password\" site:{}"
+        },
+        "2": {
+            "name": "Sensitive Directories",
+            "query": "intitle:\"index of\" OR intitle:\"directory listing\" site:{}"
+        },
+        "3": {
+            "name": "Configuration Files",
+            "query": "ext:xml OR ext:conf OR ext:cnf OR ext:reg OR ext:inf OR ext:rdp OR ext:cfg OR ext:txt OR ext:ora OR ext:ini site:{}"
+        },
+        "4": {
+            "name": "Database Files",
+            "query": "ext:sql OR ext:dbf OR ext:mdb OR ext:db site:{}"
+        },
+        "5": {
+            "name": "Backup Files",
+            "query": "ext:bkf OR ext:bkp OR ext:bak OR ext:old OR ext:backup site:{}"
+        },
+        "6": {
+            "name": "Exposed Documents",
+            "query": "ext:doc OR ext:docx OR ext:odt OR ext:pdf OR ext:rtf OR ext:sxw OR ext:psw OR ext:ppt OR ext:pptx OR ext:pps OR ext:csv site:{}"
+        },
+        "7": {
+            "name": "WordPress Files",
+            "query": "inurl:wp-content OR inurl:wp-includes site:{}"
+        },
+        "8": {
+            "name": "Log Files",
+            "query": "ext:log OR inurl:log site:{}"
+        },
+        "9": {
+            "name": "Finding Subdomains",
+            "query": "site:*.{}"
+        },
+        "10": {
+            "name": "Open FTP Servers",
+            "query": "intitle:\"index of\" inurl:ftp site:{}"
+        },
+        "11": {
+            "name": "Web Server Detection",
+            "query": "intitle:\"test page for\" \"Apache HTTP Server\" site:{}"
+        },
+        "12": {
+            "name": "phpMyAdmin",
+            "query": "intitle:\"phpMyAdmin\" inurl:\"phpMyAdmin\" site:{}"
+        },
+        "13": {
+            "name": "Vulnerable Parameters",
+            "query": "inurl:php?id= OR inurl:category.php?id= OR inurl:news.php?id= site:{}"
+        },
+        "14": {
+            "name": "Error Messages",
+            "query": "\"Warning:\" \"error on line\" site:{}"
+        },
+        "15": {
+            "name": "Network Devices",
+            "query": "intitle:\"Router Configuration\" OR intext:\"Cisco\" site:{}"
+        }
+    }
 
 def get_target_domain():
-    """Prompt user to optionally specify a target domain."""
-    has_domain = questionary.confirm(
-        "Do you want to specify a target domain?",
-        default=False,
-        style=custom_style
-    ).ask()
-    
-    if has_domain:
-        return questionary.text(
-            "Enter the target domain (e.g., example.com):",
-            validate=lambda text: len(text) > 0,
-            style=custom_style
-        ).ask()
-    return None
+    """Get and validate the target domain from user input."""
+    while True:
+        target = input(f"\n{Colors.BOLD}Enter target domain (e.g., example.com):{Colors.ENDC} ").strip()
+        if target and "." in target and " " not in target:
+            return target
+        print(f"{Colors.FAIL}Invalid domain format. Please try again.{Colors.ENDC}")
 
-def execute_dork(search_engine, dork_query, domain=None):
-    """Execute the dork by opening the browser with the crafted query."""
-    base_url = SEARCH_ENGINES[search_engine]
+def select_dork_category(categories):
+    """Let the user select a dork category."""
+    print(f"\n{Colors.BOLD}{Colors.BLUE}Available Google Dork Categories:{Colors.ENDC}")
     
-    # Add domain restriction if specified
-    if domain:
-        dork_query = f"{dork_query} site:{domain}"
+    for key, category in categories.items():
+        print(f"{Colors.CYAN}[{key}] {category['name']}{Colors.ENDC}")
     
-    # Construct the full URL
-    full_url = f"{base_url}{dork_query.replace(' ', '+')}"
+    while True:
+        choice = input(f"\n{Colors.BOLD}Select a category (1-{len(categories)}):{Colors.ENDC} ").strip()
+        if choice in categories:
+            return choice
+        print(f"{Colors.FAIL}Invalid choice. Please select a number between 1 and {len(categories)}.{Colors.ENDC}")
+
+def execute_dork(domain, category_data):
+    """Execute the selected Google dork by opening a browser."""
+    query = category_data["query"].format(domain)
+    encoded_query = quote_plus(query)
+    search_url = f"https://www.google.com/search?q={encoded_query}"
     
-    print(f"\n\033[92m[+] Executing dork query in {search_engine}...\033[0m")
-    print(f"\033[93m[*] Query: {dork_query}\033[0m")
+    print(f"\n{Colors.GREEN}Executing dork: {category_data['name']}{Colors.ENDC}")
+    print(f"{Colors.BOLD}Query:{Colors.ENDC} {query}")
+    print(f"\n{Colors.WARNING}Opening browser...{Colors.ENDC}")
     
-    try:
-        # Open the URL in the default browser
-        webbrowser.open(full_url)
-        print(f"\033[92m[✓] Browser launched successfully!\033[0m")
-    except Exception as e:
-        print(f"\033[91m[!] Error opening browser: {str(e)}\033[0m")
-        return False
+    # Add a small delay to make the experience more interactive
+    for i in range(3, 0, -1):
+        print(f"{Colors.CYAN}Launching in {i}...{Colors.ENDC}", end="\r")
+        time.sleep(0.5)
     
-    return True
+    webbrowser.open(search_url)
+    return search_url
+
+def save_history(domain, category_name, query, url):
+    """Save the search history to a file."""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    history_file = "dorkviper_history.txt"
+    
+    with open(history_file, "a") as f:
+        f.write(f"[{timestamp}] Domain: {domain} | Category: {category_name} | URL: {url}\n")
+    
+    print(f"\n{Colors.GREEN}Search saved to {history_file}{Colors.ENDC}")
 
 def main():
     """Main function to run the DorkViper tool."""
     try:
+        clear_screen()
         print_banner()
+        print_disclaimer()
         
-        # Display disclaimer
-        print("\033[91m" + "=" * 80 + "\033[0m")
-        print("\033[91m[!] DISCLAIMER: This tool is for ethical security research ONLY.\033[0m")
-        print("\033[91m[!] Unauthorized use against systems you don't own is illegal.\033[0m")
-        print("\033[91m[!] The developers are not responsible for any misuse.\033[0m")
-        print("\033[91m" + "=" * 80 + "\033[0m\n")
+        while True:
+            clear_screen()
+            print_banner()
+            
+            # Get target domain
+            domain = get_target_domain()
+            
+            # Get dork categories and let user select one
+            categories = get_dork_categories()
+            category_choice = select_dork_category(categories)
+            selected_category = categories[category_choice]
+            
+            # Execute the selected dork
+            search_url = execute_dork(domain, selected_category)
+            
+            # Save search history
+            save_history(domain, selected_category["name"], selected_category["query"].format(domain), search_url)
+            
+            # Ask if user wants to continue
+            continue_choice = input(f"\n{Colors.BOLD}Do you want to perform another search? (y/n):{Colors.ENDC} ").strip().lower()
+            if continue_choice != 'y':
+                break
         
-        # Get user confirmation to proceed
-        proceed = questionary.confirm(
-            "Do you understand and agree to use this tool ethically?",
-            default=False,
-            style=custom_style
-        ).ask()
-        
-        if not proceed:
-            print("\n\033[91m[!] Tool execution aborted by user.\033[0m")
-            sys.exit(0)
-        
-        # Select search engine
-        search_engine = select_search_engine()
-        if not search_engine:
-            print("\n\033[91m[!] No search engine selected. Exiting...\033[0m")
-            sys.exit(0)
-        
-        # Select dork category
-        dork_category = select_dork_category()
-        if not dork_category:
-            print("\n\033[91m[!] No dork category selected. Exiting...\033[0m")
-            sys.exit(0)
-        
-        # Select specific dork type
-        dork_type = select_dork_type(dork_category)
-        if not dork_type:
-            print("\n\033[91m[!] No dork type selected. Exiting...\033[0m")
-            sys.exit(0)
-        
-        # Get the dork query
-        if dork_type == "Custom Query":
-            dork_query = get_custom_dork()
-        else:
-            dork_query = DORK_CATEGORIES[dork_category][dork_type]
-        
-        # Optionally specify a target domain
-        target_domain = get_target_domain()
-        
-        # Execute the dork
-        success = execute_dork(search_engine, dork_query, target_domain)
-        
-        if success:
-            print("\n\033[92m[✓] DorkViper execution completed successfully!\033[0m")
-        else:
-            print("\n\033[91m[!] DorkViper execution failed.\033[0m")
-        
-        # Ask if user wants to run another dork
-        another = questionary.confirm(
-            "Do you want to run another dork?",
-            default=True,
-            style=custom_style
-        ).ask()
-        
-        if another:
-            main()  # Recursive call to start over
-        else:
-            print("\n\033[92m[*] Thank you for using DorkViper!\033[0m")
+        print(f"\n{Colors.GREEN}Thank you for using DorkViper. Goodbye!{Colors.ENDC}")
     
     except KeyboardInterrupt:
-        print("\n\033[91m[!] Tool execution interrupted by user.\033[0m")
-        sys.exit(0)
+        print(f"\n\n{Colors.WARNING}Operation cancelled by user. Exiting...{Colors.ENDC}")
     except Exception as e:
-        print(f"\n\033[91m[!] An unexpected error occurred: {str(e)}\033[0m")
-        sys.exit(1)
+        print(f"\n{Colors.FAIL}An error occurred: {str(e)}{Colors.ENDC}")
+    
+    sys.exit(0)
 
 if __name__ == "__main__":
-    # Check if questionary is installed
-    try:
-        import questionary
-    except ImportError:
-        print("\033[91m[!] questionary is not installed. Installing required packages...\033[0m")
-        os.system('pip install questionary')
-        print("\033[92m[✓] Dependencies installed successfully!\033[0m")
-    
     main()
